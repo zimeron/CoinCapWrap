@@ -12,9 +12,7 @@ export class AppService {
 
   constructor(private httpService: HttpService) {
   }
-
-  // Only returns a small summary with name, id, and symbol.  Assumes user will use getAssetById for more details
-  // That way we're only loading the minimum, and waiting on a click-through to grab the full data set
+  
   async getAllAssets(): Promise<AssetDetails[]> {
     return await firstValueFrom(this.httpService.get<{
       data: AssetDetails[],

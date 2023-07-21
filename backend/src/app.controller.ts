@@ -5,19 +5,21 @@ import { AppService, AssetSummary, BalanceAdjustmentDTO, UserLogin, UserReg, Wal
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
+  // Only returns minimal summaries so the browser isn't full of details it doesn't yet want.  
+  // Assumes that a user will click through to prompt getAssetById for more details on individual assets.
   @Get("/assets")
   @Header('Content-type', 'application/json')
   async getAllAssets(): Promise<string> {
-    return JSON.stringify(async () => {
-      const detailedAssets = await this.appService.getAllAssets();
-      return detailedAssets.map(it => {
-        let summary: AssetSummary = {
-          id: it.id,
-          name: it.name,
-          symbol: it.symbol
-        }
-      })
+    const raw = await this.appService.getAllAssets();
+    const summaries = raw.map(it => {
+      return {
+        id: it.id,
+        name: it.name,
+        symbol: it.symbol
+      }
     });
+
+    return JSON.stringify(summaries);
   }
 
   @Get("/assets/:id")
