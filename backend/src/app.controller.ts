@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Header, Param, Post } from '@nestjs/common';
-import { AppService, BalanceAdjustmentDTO, UserLogin, UserReg } from './app.service';
+import { AppService, AssetSummary, BalanceAdjustmentDTO, UserLogin, UserReg, WalletBalanceSummary } from './app.service';
 
 @Controller()
 export class AppController {
@@ -8,7 +8,16 @@ export class AppController {
   @Get("/assets")
   @Header('Content-type', 'application/json')
   async getAllAssets(): Promise<string> {
-    return JSON.stringify(await this.appService.getAllAssets());
+    return JSON.stringify(async () => {
+      const detailedAssets = await this.appService.getAllAssets();
+      return detailedAssets.map(it => {
+        let summary: AssetSummary = {
+          id: it.id,
+          name: it.name,
+          symbol: it.symbol
+        }
+      })
+    });
   }
 
   @Get("/assets/:id")
@@ -17,13 +26,19 @@ export class AppController {
     return JSON.stringify(await this.appService.getAssetById(id))
   }
 
-  @Get("/assets/priceUsd/:id")
+  @Get("/assets/USD/:id")
   @Header('Content-type', 'application/json')
   async getUsdValuePerAsset(@Param('id') id: string): Promise<string> {
     return JSON.stringify({
       assetId: id,
-      usdPrice: await this.appService.getUsdValuePerAsset(id)
+      usdPrice: (await this.appService.getAssetById(id)).priceUsd
     })
+  }
+
+  @Get("/wallets/myBalance/:id")
+  @Header("Content-type", 'application/json')
+  async getWalletBalance(@Param('id') id: string): Promise<string> {
+    return JSON.stringify(await this.appService.getWalletBalanceSummary(id));
   }
 
   @Post("/users/register")

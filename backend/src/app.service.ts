@@ -15,39 +15,30 @@ export class AppService {
 
   // Only returns a small summary with name, id, and symbol.  Assumes user will use getAssetById for more details
   // That way we're only loading the minimum, and waiting on a click-through to grab the full data set
-  async getAllAssets(): Promise<AssetSummary[]> {
-    return await firstValueFrom(this.httpService.get<AssetSummary[]>(this.coinCapUrl + "/assets")
+  async getAllAssets(): Promise<AssetDetails[]> {
+    return await firstValueFrom(this.httpService.get<{
+      data: AssetDetails[],
+      timestamp: number
+    }>(this.coinCapUrl + "/assets")
     .pipe(
       catchError((error: AxiosError) => {
         console.log("An error occurred: " + error.response.data);
         throw 'An error happened';
       })
-    )).then(response => response.data);
+    )).then(response => response.data.data);
   }
 
   async getAssetById(id: string): Promise<AssetDetails> {
-    return await firstValueFrom(this.httpService.get<AssetDetails>(this.coinCapUrl + "/assets/" + id)
+    return await firstValueFrom(this.httpService.get<{
+      data: AssetDetails,
+      timestamp: number
+    }>(this.coinCapUrl + "/assets/" + id)
     .pipe(
       catchError((error: AxiosError) => {
         console.log("An error occurred: " + error);
         throw error;
       })
-    )).then(response => response.data);
-  }
-
-  async getUsdValuePerAsset(id: string): Promise<number> {
-    return await firstValueFrom(this.httpService.get<AssetDetails>(this.coinCapUrl + "/assets/" + id)
-    .pipe(
-      catchError((error: AxiosError) => {
-        console.log("An error occurred: " + error);
-        throw error;
-      })
-    )).then(response => +response.data.priceUsd);
-  }
-
-  private async getAssetValueUsd(assetAmount: number, id: string): Promise<number> {
-    const asset = await this.getAssetById(id);
-    return +asset.priceUsd * assetAmount;
+    )).then(response => response.data.data);
   }
 
   public async registerUser(userReg: UserReg): Promise<void> {
@@ -79,7 +70,7 @@ export class AppService {
     const users = JSON.parse(readFileSync('resources/RegUsers.json').toString()) as User[];
     const user = users.find(it => it.username = userLogin.username);
 
-    return compareSync(userLogin.password, user.password) ? "Login successful" : "Invalid password";
+    return compareSync(userLogin.password, user.password) ? "Login successful" : "Invalid login credentials";
   }
   
   // Used to generate a wallet automatically for a new user when they register
@@ -147,6 +138,32 @@ export class AppService {
     
     return "Balance updated";
   }
+
+  public async getWalletBalanceSummary(id: string): Promise<WalletBalanceSummary> {
+    // Setup: grab all the details we need from CoinCap, our wallets out of DB/file, and grab the assets out of the wallet requested.
+    const detailedAssets = await this.getAllAssets();
+    const wallets = JSON.parse(readFileSync('resources/Wallets.json').toString()) as Wallet[];
+    const selectedAssets = wallets.find(it => it.id === id).assets;
+
+    // Grab the details for the relevant assets
+    const byAsset = selectedAssets.map(asset => {
+      const detailedAsset = detailedAssets.find(details => details.id === asset.id);
+      return {
+        name: detailedAsset.name,
+        symbol: detailedAsset.symbol,
+        balance: asset.balance,
+        balanceUSD: asset.balance * +detailedAsset.priceUsd
+      }
+    });
+
+    // Total USD is a summation of the balanceUSD of all the assets together
+    return {
+      totalUSD: byAsset.map(asset => asset.balanceUSD).reduce((a, b) => {
+        return a + b;
+      }),
+      byAsset: byAsset
+    }  
+  }
 }
 
 export interface AssetSummary {
@@ -196,5 +213,17 @@ export interface BalanceAdjustmentDTO {
   assetId: string;
   balanceAdjustment: number;
   walletId: string;
+}
+
+interface ReportWalletAsset {
+  name: string;
+  symbol: string;
+  balance: number;
+  balanceUSD: number;
+}
+
+export interface WalletBalanceSummary {
+  totalUSD: number;
+  byAsset: ReportWalletAsset[]
 }
 
