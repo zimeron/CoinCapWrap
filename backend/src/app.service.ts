@@ -140,10 +140,19 @@ export class AppService {
   }
 
   public async getWalletBalanceSummary(id: string): Promise<WalletBalanceSummary> {
-    // Setup: grab all the details we need from CoinCap, our wallets out of DB/file, and grab the assets out of the wallet requested.
-    const detailedAssets = await this.getAllAssets();
     const wallets = JSON.parse(readFileSync('resources/Wallets.json').toString()) as Wallet[];
     const selectedAssets = wallets.find(it => it.id === id).assets;
+
+    // If they're broke, we won't bother with CoinCap
+    if(selectedAssets.length === 0) {
+      return {
+        totalUSD: 0,
+        byAsset: []
+      }
+    }
+
+    const detailedAssets = await this.getAllAssets();
+    
 
     // Grab the details for the relevant assets
     const byAsset = selectedAssets.map(asset => {
