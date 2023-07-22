@@ -1,1 +1,1 @@
-[{"id":"b330b214-4d58-4ef2-8dae-a72e89749584","userId":"f4bfaa54-419d-4f17-9956-aa12c7e5747c","assets":[]}]
+[{"id":"fffd5fed-e195-40ca-8eb9-c7c16fa7a365","userId":"b629b840-0a11-4f72-b253-a49aaa373a59","assets":[{"id":"bitcoin","balance":1},{"id":"ethereum","balance":2}],"transactions":[{"balanceChange":1,"assetId":"bitcoin","timestamp":1680047902832},{"balanceChange":2,"assetId":"ethereum","timestamp":1680047911505}],"timeCreated":1689032505}]

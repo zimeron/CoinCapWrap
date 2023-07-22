@@ -2,9 +2,9 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
-import { readFile, readFileSync, write, writeFile, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { compareSync, hash, hashSync } from 'bcrypt';
+import { compareSync, hashSync } from 'bcrypt';
 
 @Injectable()
 export class AppService {
@@ -15,10 +15,9 @@ export class AppService {
 
   // Annoyingly, CoinCap structure their returns as an object with a data block, much like how axios structures their returns as an object with a data block
   // So you have to drill a bit for the actual data you want
-  async getAllAssets(): Promise<AssetDetails[]> {
-    const { data } = await firstValueFrom(this.httpService.get<{data: AssetDetails[]}>(
-        this.coinCapUrl + "/assets"
-      ).pipe(catchError((error: AxiosError) => {
+  public async getAllAssets(): Promise<AssetDetails[]> {
+    const { data } = await firstValueFrom(this.httpService.get<{ data: AssetDetails[] }>(this.coinCapUrl + "/assets").pipe(
+      catchError((error: AxiosError) => {
         console.log("An error occurred: " + error.response.data);
         throw 'Internal Server Error';
       })
@@ -27,17 +26,25 @@ export class AppService {
     return data.data;
   }
 
-  async getAssetById(id: string): Promise<AssetDetails> {
-    const { data } = await firstValueFrom(this.httpService.get<{
-      data: AssetDetails
-    }>(this.coinCapUrl + "/assets/" + id)
-    .pipe(
+  public async getAssetById(id: string): Promise<AssetDetails> {
+    const { data } = await firstValueFrom(this.httpService.get<{ data: AssetDetails }>(this.coinCapUrl + "/assets/" + id).pipe(
       catchError((error: AxiosError) => {
         console.log("An error occurred: " + error);
         throw 'Internal Server Error';
       })
     ));
 
+    return data.data;
+  }
+
+  private async getAssetHistoryById(id: string, interval: string): Promise<AssetHistory[]> {
+    const { data } = await firstValueFrom(this.httpService.get<{ data: AssetHistory[] }>(this.coinCapUrl+ "/assets/" + id + "/history?interval=" + interval).pipe(
+      catchError((error: AxiosError) => {
+        console.log("An error occurred: " + error);
+        throw 'Internal Server Error';
+        })
+      ));
+    
     return data.data;
   }
 
@@ -117,7 +124,9 @@ export class AppService {
       const wallet: Wallet = {
         id: walletId,
         userId: userId,
-        assets: []
+        assets: [],
+        transactions: [],
+        timeCreated: Date.now()
       }
 
       let wallets = JSON.parse(readFileSync('resources/Wallets.json').toString()) as Wallet[];
@@ -129,7 +138,6 @@ export class AppService {
     }
   }
 
-  // TODO: actual error codes
   // Updates balance of a given asset in a given wallet.  Assumes that requests to lower asset balance come from a frontend as negative numbers in balanceAdjustment.
   public updateBalance(dto: BalanceAdjustmentDTO): string {
     // Short circuit the inevitable balance adjustment that doesn't actually want balance adjusted
@@ -158,6 +166,13 @@ export class AppService {
         })
       }
 
+      // Record the transaction so history is maintained.
+      workingWallet.transactions.push({
+        balanceChange: dto.balanceAdjustment,
+        assetId: dto.assetId,
+        timestamp: Date.now()
+      })
+
       // Remove any assets at balance 0
       workingWallet.assets = workingWallet.assets.filter(it => it.balance > 0);
       
@@ -170,39 +185,154 @@ export class AppService {
     return "Balance updated";
   }
 
-  public async getWalletBalanceSummary(id: string): Promise<WalletBalanceSummary> {
-    const wallets = JSON.parse(readFileSync('resources/Wallets.json').toString()) as Wallet[];
-    const selectedAssets = wallets.find(it => it.id === id).assets;
-
-    // If they're broke, we won't bother with CoinCap
-    if(selectedAssets.length === 0) {
-      return {
-        totalUSD: 0,
-        byAsset: []
+  public async getWalletBalanceSummary(id: string): Promise<WalletBalanceSummary | string> {
+    try {
+      const wallets = JSON.parse(readFileSync('resources/Wallets.json').toString()) as Wallet[];
+      const selectedAssets = wallets.find(it => it.id === id).assets;
+  
+      // If they're broke, we won't bother with CoinCap
+      if(selectedAssets.length === 0) {
+        return {
+          totalUSD: 0,
+          byAsset: []
+        }
       }
-    }
-
-    const detailedAssets = await this.getAllAssets();
-    
-
-    // Grab the details for the relevant assets
-    const byAsset = selectedAssets.map(asset => {
-      const detailedAsset = detailedAssets.find(details => details.id === asset.id);
+  
+      const detailedAssets = await this.getAllAssets();
+  
+      // Grab the price for the relevant assets
+      const byAsset = selectedAssets.map(asset => {
+        const usdPrice = detailedAssets.find(it => it.id === asset.id).priceUsd;
+        return {
+          id: asset.id,
+          balance: asset.balance,
+          balanceUSD: asset.balance * +usdPrice
+        }
+      });
+  
+      // Total USD balance of the wallet is a summation of the balanceUSD of all the assets together
       return {
-        name: detailedAsset.name,
-        symbol: detailedAsset.symbol,
-        balance: asset.balance,
-        balanceUSD: asset.balance * +detailedAsset.priceUsd
-      }
-    });
+        totalUSD: byAsset.map( asset => asset.balanceUSD).reduce((a, b) => {
+          return a + b;
+        }),
+        byAsset: byAsset
+      };  
+    } catch {
+      return "Internal Server Error";
+    };
+  }
 
-    // Total USD is a summation of the balanceUSD of all the assets together
-    return {
-      totalUSD: byAsset.map(asset => asset.balanceUSD).reduce((a, b) => {
-        return a + b;
-      }),
-      byAsset: byAsset
-    }  
+  public async getWalletBalanceHistory(id: string): Promise<WalletBalanceHistorySummary[] | string> {
+    try {
+      const wallets = JSON.parse(readFileSync('resources/Wallets.json').toString()) as Wallet[];
+      const workingWallet = wallets.find(it => it.id === id);
+
+      // Figure out all the assets which have ever been in this wallet based on transaction history
+      let relevantAssetIds: string[] = [];
+      relevantAssetIds = workingWallet.transactions.map(transaction => {
+        if (!relevantAssetIds.includes(transaction.assetId)) {
+          return transaction.assetId;
+        }
+      });
+
+      // Get a day-by-day price history of the relevant assets, during the period in which the wallet has existed.
+      // I would be doing this with the "start" and "end" params to pull less into memory, but CoinCap won't let you use those without paying
+      const assetHistories = await Promise.all(relevantAssetIds.map(async assetId => {
+          return {
+            assetId: assetId,
+            priceData: (await this.getAssetHistoryById(assetId, "d1")).filter(history => history.time >= workingWallet.timeCreated)
+          }
+        }
+      ));
+      
+      // Get all the unique dates we've been given in the asset history lookups
+      const dates = assetHistories.flatMap(historyWithAsset => {
+        return [...new Set(historyWithAsset.priceData.map(it => it.date))];
+      });
+
+      // Normalize all the asset prices to date rather than to asset.  In other words, switch the data around so we have all the assets and their prices on a given date,
+      // instead of all date/price combinations on a given asset.
+      const normalizedHistories: {
+        date: string,
+        time: number,
+        assetPrices: {
+          assetId: string,
+          priceUsd: string
+        }[]
+      }[] = dates.map(date => {
+        return {
+          date: date,
+          time: new Date(date).getTime(),
+          assetPrices: assetHistories.map(historyWithAsset => {
+            const pricesAtDate = historyWithAsset.priceData.find(history => history.date === date);
+            return {
+              assetId: historyWithAsset.assetId,
+              priceUsd: pricesAtDate.priceUsd
+            }
+          })
+        };
+      });
+
+      // For each date in the normalized histories, reconstruct the wallet based on the transaction log up to that point
+      const historicalBalances: WalletBalanceHistorySummary[] = normalizedHistories.map(history => {
+
+        // Grab the transactions prior to the date we've pulled
+        const relevantTransactions = workingWallet.transactions.filter(transaction => transaction.timestamp <= history.time);
+
+        // Wallet we're reconstructing for this date
+        let reconWallet: Wallet = {
+          id: workingWallet.id,
+          userId: workingWallet.userId,
+          assets: [],
+          transactions: [],
+          timeCreated: history.time
+        }
+
+        // Apply transactions in order to the wallet
+        relevantTransactions.map(transaction => {
+          if(reconWallet.assets.some(asset => asset.id === transaction.assetId)) {
+            reconWallet.assets.find(asset => asset.id === transaction.assetId).balance += transaction.balanceChange;
+          } else {
+            reconWallet.assets.push({
+              id: transaction.assetId,
+              balance: transaction.balanceChange
+            });
+          }
+        });
+
+        // Calculate balance in USD based on the history information we have for the assets on this date
+        if(reconWallet.assets.length > 0 ) {
+          const byAsset = reconWallet.assets.map(asset => {
+            const usdPrice = history.assetPrices.find(it => it.assetId === asset.id).priceUsd;
+            return {
+              id: asset.id,
+              balance: asset.balance,
+              balanceUSD: asset.balance * +usdPrice
+            }
+          });
+  
+          return {
+            totalUSD: byAsset.map(asset => asset.balanceUSD).reduce((a, b) => {
+              return a + b;
+            }),
+            byAsset: byAsset,
+            timestamp: history.time
+          };
+        } else {
+          return {
+            totalUSD: 0,
+            byAsset: [],
+            timestamp: history.time
+          }
+        }
+      });
+
+      return historicalBalances;
+
+    } catch(e) {
+      console.log(e);
+      return "Internal Server Error";
+    };
   }
 }
 
@@ -247,6 +377,8 @@ export interface Wallet {
   id: string;
   userId: string;
   assets: WalletAsset[];
+  transactions: WalletTransaction[];
+  timeCreated: number;
 }
 
 export interface BalanceAdjustmentDTO {
@@ -256,8 +388,7 @@ export interface BalanceAdjustmentDTO {
 }
 
 interface ReportWalletAsset {
-  name: string;
-  symbol: string;
+  id: string;
   balance: number;
   balanceUSD: number;
 }
@@ -267,3 +398,18 @@ export interface WalletBalanceSummary {
   byAsset: ReportWalletAsset[]
 }
 
+export interface WalletBalanceHistorySummary extends WalletBalanceSummary {
+  timestamp: number;
+}
+
+interface WalletTransaction {
+  balanceChange: number;
+  assetId: string;
+  timestamp: number;
+}
+
+interface AssetHistory {
+  priceUsd: string,
+  time: number,
+  date: string
+}

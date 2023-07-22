@@ -43,6 +43,12 @@ export class AppController {
     return JSON.stringify(await this.appService.getWalletBalanceSummary(id));
   }
 
+  @Get("/wallets/historicalBalances/:id")
+  @Header("Content-type", "application/json")
+  async getHistoricalWalletBalance(@Param('id') id: string): Promise<string> {
+    return JSON.stringify(await this.appService.getWalletBalanceHistory(id));
+  }
+
   @Post("/users/register")
   registerUser(@Body() userReg: UserReg): string {
     return this.appService.registerUser(userReg);
