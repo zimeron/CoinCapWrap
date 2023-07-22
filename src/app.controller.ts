@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Header, Param, Post } from '@nestjs/common';
-import { AppService, AssetSummary, BalanceAdjustmentDTO, UserLogin, UserReg, WalletBalanceSummary } from './app.service';
+import { AppService, BalanceAdjustment, UserLogin, UserReg, asssetConversionRequest, usdConversionRequest } from './app.service';
 
 @Controller()
 export class AppController {
@@ -68,8 +68,20 @@ export class AppController {
 
   @Post("/wallets/updateBalance")
   @Header('Content-type', 'text/plain')
-  updateBalance(@Body() balanceAdjustmentDTO: BalanceAdjustmentDTO): string {
+  updateBalance(@Body() balanceAdjustmentDTO: BalanceAdjustment): string {
     return this.appService.updateBalance(balanceAdjustmentDTO);
+  }
+
+  @Post("/assets/convertToUSD")
+  @Header('Content-type', 'text/plain')
+  convertToUsd(@Body() usdConversionRequest: usdConversionRequest): Promise<string> {
+    return this.appService.convertAssetToUSD(usdConversionRequest.assetId, usdConversionRequest.assetQuantity);
+  }
+
+  @Post("/assets/convertToAsset")
+  @Header('Content-type', 'text/plain')
+  convertToAsset(@Body() assetConversionRequest: asssetConversionRequest): Promise<string> {
+    return this.appService.convertUSDToAsset(assetConversionRequest.assetId, assetConversionRequest.usdQuantity);
   }
 
 }

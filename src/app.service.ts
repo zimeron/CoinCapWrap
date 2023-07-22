@@ -48,6 +48,19 @@ export class AppService {
     return data.data;
   }
 
+  public async convertAssetToUSD(assetId: string, assetQuantity: number): Promise<string> {
+    const assetPrice = (await this.getAssetById(assetId)).priceUsd;
+
+    return "Value in USD: " + (+assetPrice * assetQuantity).toString(); 
+  }
+
+  public async convertUSDToAsset(assetId: string, usdQuantity: number): Promise<string> {
+    const assetPrice = (await this.getAssetById(assetId)).priceUsd;
+
+    return "Can purchase: " + ((1/+assetPrice) * usdQuantity).toString() + " of asset with id \"" + assetId + "\"";
+
+  }
+
   public registerUser(userReg: UserReg): string {
     try {
       const userId = uuidv4();
@@ -77,7 +90,6 @@ export class AppService {
   }
 
   public loginUser(userLogin: UserLogin): string {
-
     try {
       const users = JSON.parse(readFileSync('resources/RegUsers.json').toString()) as User[];
       const user = users.find(it => it.username = userLogin.username);
@@ -139,7 +151,7 @@ export class AppService {
   }
 
   // Updates balance of a given asset in a given wallet.  Assumes that requests to lower asset balance come from a frontend as negative numbers in balanceAdjustment.
-  public updateBalance(dto: BalanceAdjustmentDTO): string {
+  public updateBalance(dto: BalanceAdjustment): string {
     // Short circuit the inevitable balance adjustment that doesn't actually want balance adjusted
     if (dto.balanceAdjustment === 0) return "Bad Request";
 
@@ -347,12 +359,14 @@ export class AppService {
   }
 }
 
+// Short list of identifiers for an asset
 export interface AssetSummary {
   id: string;
   name: string;
   symbol: string;
 }
 
+// Full details for an asset
 export interface AssetDetails extends AssetSummary {
   rank: string;
   supply: string;
@@ -364,26 +378,31 @@ export interface AssetDetails extends AssetSummary {
   vwap24Hr: string;
 }
 
+// Asset as it matters to a wallet
 interface WalletAsset {
   id: string;
   balance: number;
 }
 
+// User creds for logins
 export interface UserLogin {
   username: string;
   password: string;
 }
 
+// Registration information
 export interface UserReg extends UserLogin {
   name: string;
   email: string;
 }
 
+// Internal User information they themselves don't need to know about
 export interface User extends UserReg {
   id: string;
   walletId: string;
 }
 
+// Holds assets, belongs to a user, and stores its own history
 export interface Wallet {
   id: string;
   userId: string;
@@ -392,37 +411,54 @@ export interface Wallet {
   timeCreated: number;
 }
 
-export interface BalanceAdjustmentDTO {
+// What we expect form a request to change an asset's balance in a wallet
+export interface BalanceAdjustment {
   assetId: string;
   balanceAdjustment: number;
   walletId: string;
 }
 
+// An asset as it matters to reporting on wallet value
 interface ReportWalletAsset {
   id: string;
   balance: number;
   balanceUSD: number;
 }
 
+// Formatted summary of wallet value, both in total and per-asset
 export interface WalletBalanceSummary {
   totalUSD: number;
   byAsset: ReportWalletAsset[]
 }
 
+// Like a balance summary, but not current so it includes a time it's referring to, 
+// and some change over time statistics useful to someone checking how their investments are doing
 export interface WalletBalanceHistorySummary extends WalletBalanceSummary {
   timestamp: number;
   netChangeNominal: number;
   netChangeRate: string;
 }
 
+// Stores history of successful balance updates on a wallet for history calculations
 interface WalletTransaction {
   balanceChange: number;
   assetId: string;
   timestamp: number;
 }
 
+// Clones the actual data fields of the CoinCap history asset history object
 interface AssetHistory {
   priceUsd: string,
   time: number,
   date: string
+}
+
+export interface usdConversionRequest {
+  assetId: string;
+  assetQuantity: number;
+}
+
+export interface asssetConversionRequest {
+  assetId: string;
+  usdQuantity: number;
 }
