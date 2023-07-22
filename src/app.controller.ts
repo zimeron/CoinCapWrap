@@ -44,8 +44,8 @@ export class AppController {
   }
 
   @Post("/users/register")
-  registerUser(@Body() userReg: UserReg): void {
-    this.appService.registerUser(userReg);
+  registerUser(@Body() userReg: UserReg): string {
+    return this.appService.registerUser(userReg);
   }
 
   @Post("/users/login")

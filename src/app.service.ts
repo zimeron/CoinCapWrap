@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
-import { readFile, readFileSync, writeFile, writeFileSync } from 'fs';
+import { readFile, readFileSync, write, writeFile, writeFileSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { compareSync, hash, hashSync } from 'bcrypt';
 
@@ -41,22 +41,26 @@ export class AppService {
     return data.data;
   }
 
-  public async registerUser(userReg: UserReg): Promise<string> {
-    const userId = uuidv4();
-
-    const user: User = {
-      ...userReg,
-      id: userId,
-      walletId: await this.createWallet(userId),
-      password: hashSync(userReg.password, 10)
-    }
-
+  public registerUser(userReg: UserReg): string {
     try {
+      const userId = uuidv4();
+      const walletId = this.createWallet(userId);
+
+      if(walletId === "Internal Server Error") {
+        throw "Wallet creation failed"
+      }
+
+      const user: User = {
+        ...userReg,
+        id: userId,
+        walletId: walletId,
+        password: hashSync(userReg.password, 10)
+      }
+
       let users = JSON.parse(readFileSync('resources/RegUsers.json').toString()) as User[];
       if(!users.some(it => it.username === user.username)) {
         users.push(user);
         writeFileSync('resources/RegUsers.json', JSON.stringify(users));
-        console.log('User successfully registered');
       } else throw("Username already exists");
 
       return "Registration successful";
@@ -102,33 +106,27 @@ export class AppService {
       writeFileSync('resources/UserTokens.json', JSON.stringify(tokens));
       return "Logged out successfully";
     } catch {
-      return "Internal server error";
+      return "Internal Server Error";
     }
   }
   
   // Used to generate a wallet automatically for a new user when they register
-  private async createWallet(userId: string): Promise<string> {
-    const walletId = uuidv4();
-
-    readFile('resources/Wallets.json', (err, data) => {
-      if (err) throw err;
-      
+  private createWallet(userId: string): string {
+    try {
+      const walletId = uuidv4();
       const wallet: Wallet = {
         id: walletId,
         userId: userId,
         assets: []
       }
 
-      let wallets = JSON.parse(data.toString()) as Wallet[];
+      let wallets = JSON.parse(readFileSync('resources/Wallets.json').toString()) as Wallet[];
       wallets.push(wallet);
-
-      writeFile('resources/Wallets.json', JSON.stringify(wallets), (err) => {
-        if (err) throw err;
-        console.log('Wallet created for new user' + userId);
-      })
-    });
-
-    return walletId;
+      writeFileSync('resources/Wallets.json', JSON.stringify(wallets));
+      return wallet.id;
+    } catch {
+      return "Internal Server Error"
+    }
   }
 
   // TODO: actual error codes
