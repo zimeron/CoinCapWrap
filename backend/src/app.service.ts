@@ -4,7 +4,7 @@ import { AxiosError } from 'axios';
 import { catchError, firstValueFrom } from 'rxjs';
 import { readFile, readFileSync, writeFile, writeFileSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import { compareSync, hashSync } from 'bcrypt';
+import { compareSync, hash, hashSync } from 'bcrypt';
 
 @Injectable()
 export class AppService {
@@ -13,31 +13,35 @@ export class AppService {
   constructor(private httpService: HttpService) {
   }
 
+  // Annoyingly, CoinCap structure their returns as an object with a data block, much like how axios structures their returns as an object with a data block
+  // So you have to drill a bit for the actual data you want
   async getAllAssets(): Promise<AssetDetails[]> {
-    return await firstValueFrom(this.httpService.get<{
-      data: AssetDetails[]
-    }>(this.coinCapUrl + "/assets")
-    .pipe(
-      catchError((error: AxiosError) => {
+    const { data } = await firstValueFrom(this.httpService.get<{data: AssetDetails[]}>(
+        this.coinCapUrl + "/assets"
+      ).pipe(catchError((error: AxiosError) => {
         console.log("An error occurred: " + error.response.data);
-        throw 'An error happened';
+        throw 'Internal Server Error';
       })
-    )).then(response => response.data.data);
+    ));
+    
+    return data.data;
   }
 
   async getAssetById(id: string): Promise<AssetDetails> {
-    return await firstValueFrom(this.httpService.get<{
+    const { data } = await firstValueFrom(this.httpService.get<{
       data: AssetDetails
     }>(this.coinCapUrl + "/assets/" + id)
     .pipe(
       catchError((error: AxiosError) => {
         console.log("An error occurred: " + error);
-        throw error;
+        throw 'Internal Server Error';
       })
-    )).then(response => response.data.data);
+    ));
+
+    return data.data;
   }
 
-  public async registerUser(userReg: UserReg): Promise<void> {
+  public async registerUser(userReg: UserReg): Promise<string> {
     const userId = uuidv4();
 
     const user: User = {
@@ -47,26 +51,59 @@ export class AppService {
       password: hashSync(userReg.password, 10)
     }
 
-    readFile('resources/RegUsers.json', (err, data) => {
-      if (err) throw err; 
-
-      let users = JSON.parse(data.toString()) as User[];
-      users.push(user);
-
-      writeFile('resources/RegUsers.json', JSON.stringify(users), (err) => {
-        if (err) throw err;
+    try {
+      let users = JSON.parse(readFileSync('resources/RegUsers.json').toString()) as User[];
+      if(!users.some(it => it.username === user.username)) {
+        users.push(user);
+        writeFileSync('resources/RegUsers.json', JSON.stringify(users));
         console.log('User successfully registered');
-      })
-    })
+      } else throw("Username already exists");
+
+      return "Registration successful";
+    } catch {
+      return "Internal Server Error";
+    }
   }
 
   public loginUser(userLogin: UserLogin): string {
-    //TODO: send a token to the user on successful login, record token somewhere
 
-    const users = JSON.parse(readFileSync('resources/RegUsers.json').toString()) as User[];
-    const user = users.find(it => it.username = userLogin.username);
+    try {
+      const users = JSON.parse(readFileSync('resources/RegUsers.json').toString()) as User[];
+      const user = users.find(it => it.username = userLogin.username);
+  
+      const tokens = JSON.parse(readFileSync('resources/UserTokens.json').toString()) as [{ user: string, token: string }];
 
-    return compareSync(userLogin.password, user.password) ? "Login successful" : "Invalid login credentials";
+      if (tokens.some(it => it.user === user.username)) {
+        return "Error: user already logged in";
+      }
+
+      const token = uuidv4();
+      tokens.push({
+        user: user.username,
+        token: token
+      });
+      writeFileSync('resources/UserTokens.json', JSON.stringify(tokens));
+
+      return compareSync(userLogin.password, user.password) ? "Login successful, here is your token: " + token.toString() : "Invalid login credentials";
+    } catch {
+      return "Internal Server Error";
+    }
+  }
+
+  public logoutUser(userName: string): string {
+    try {
+      const tokens = JSON.parse(readFileSync('resources/UserTokens.json').toString()) as [{user: string, token: string}];
+
+      if(!tokens.some(it => it.user === userName)) {
+        return "Error: user is not logged in";
+      }
+
+      tokens.splice(tokens.findIndex(it => it.user === userName), 1);
+      writeFileSync('resources/UserTokens.json', JSON.stringify(tokens));
+      return "Logged out successfully";
+    } catch {
+      return "Internal server error";
+    }
   }
   
   // Used to generate a wallet automatically for a new user when they register
@@ -128,7 +165,7 @@ export class AppService {
       
       writeFileSync('resources/Wallets.json', JSON.stringify(wallets));
 
-    } catch(e) {
+    } catch {
       return "Internal Server Error"
     }
     
@@ -180,7 +217,7 @@ export interface AssetSummary {
 export interface AssetDetails extends AssetSummary {
   rank: string;
   supply: string;
-  maxSuppply: string;
+  maxSupply: string;
   marketCapUsd: string;
   volumeUsd24Hr: string;
   priceUsd: string;

@@ -54,6 +54,12 @@ export class AppController {
     return this.appService.loginUser(userLogin);
   }
 
+  @Post("/users/logout")
+  @Header('Content-type', 'text/plain')
+  logoutUser(@Body() user: { userName: string }): string {
+    return this.appService.logoutUser(user.userName);
+  }
+
   @Post("/wallets/updateBalance")
   @Header('Content-type', 'text/plain')
   updateBalance(@Body() balanceAdjustmentDTO: BalanceAdjustmentDTO): string {
