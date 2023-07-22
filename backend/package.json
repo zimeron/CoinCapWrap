@@ -24,6 +24,7 @@
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/swagger": "^7.1.2",
     "axios": "^1.4.0",
     "bcrypt": "^5.1.0",
     "fs": "^0.0.1-security",
@@ -32,6 +33,7 @@
     "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@automock/jest": "^1.2.2",
     "@nestjs/cli": "^10.0.0",
     "@nestjs/schematics": "^10.0.0",
     "@nestjs/testing": "^10.0.0",

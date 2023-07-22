@@ -1,21 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AppService } from './app.service';
+import { AppService, AssetDetails } from './app.service';
+import { HttpService } from '@nestjs/axios';
+import { TestBed } from '@automock/jest';
 
 describe('AppService', () => {
   let appService: AppService;
+  let httpService: jest.Mocked<HttpService>;
 
-  beforeEach(async () => {
-    const app: TestingModule = await Test.createTestingModule({
-      controllers: [AppService],
-      providers: [AppService],
-    }).compile();
+  beforeAll(() => {
+    const { unit, unitRef } = TestBed.create(AppService)
+        .mock(HttpService)
+        .using({ get: jest.fn() })
+        .compile();
 
-    appService = app.get<AppService>(AppService);
+    appService = unit;
+
+    httpService = unitRef.get(HttpService);
   });
 
-  //describe('getAssetById', () => {
-    //it('should return the data object for the Bitcoin asset', () => {
-      //expect(appController.getHello()).toBe('Hello World!');
-    //});
-  //});
+
+
 });

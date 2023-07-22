@@ -12,11 +12,10 @@ export class AppService {
 
   constructor(private httpService: HttpService) {
   }
-  
+
   async getAllAssets(): Promise<AssetDetails[]> {
     return await firstValueFrom(this.httpService.get<{
-      data: AssetDetails[],
-      timestamp: number
+      data: AssetDetails[]
     }>(this.coinCapUrl + "/assets")
     .pipe(
       catchError((error: AxiosError) => {
@@ -28,8 +27,7 @@ export class AppService {
 
   async getAssetById(id: string): Promise<AssetDetails> {
     return await firstValueFrom(this.httpService.get<{
-      data: AssetDetails,
-      timestamp: number
+      data: AssetDetails
     }>(this.coinCapUrl + "/assets/" + id)
     .pipe(
       catchError((error: AxiosError) => {
@@ -63,7 +61,7 @@ export class AppService {
   }
 
   public loginUser(userLogin: UserLogin): string {
-    //set up session or send back token or something?
+    //TODO: send a token to the user on successful login, record token somewhere
 
     const users = JSON.parse(readFileSync('resources/RegUsers.json').toString()) as User[];
     const user = users.find(it => it.username = userLogin.username);
