@@ -1,7 +1,7 @@
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
-import { catchError, firstValueFrom } from 'rxjs';
+import { catchError, firstValueFrom, last } from 'rxjs';
 import { readFileSync, writeFileSync } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { compareSync, hashSync } from 'bcrypt';
@@ -274,7 +274,9 @@ export class AppService {
       });
 
       // For each date in the normalized histories, reconstruct the wallet based on the transaction log up to that point
-      const historicalBalances: WalletBalanceHistorySummary[] = normalizedHistories.map(history => {
+      let index = 0;
+      let historicalBalances: WalletBalanceHistorySummary[] = [];
+      normalizedHistories.map(history => {
 
         // Grab the transactions prior to the date we've pulled
         const relevantTransactions = workingWallet.transactions.filter(transaction => transaction.timestamp <= history.time);
@@ -300,6 +302,9 @@ export class AppService {
           }
         });
 
+        const lastIterationTotal = index === 0 ? 0 : historicalBalances[index - 1].totalUSD 
+        index++;
+
         // Calculate balance in USD based on the history information we have for the assets on this date
         if(reconWallet.assets.length > 0 ) {
           const byAsset = reconWallet.assets.map(asset => {
@@ -310,20 +315,26 @@ export class AppService {
               balanceUSD: asset.balance * +usdPrice
             }
           });
-  
-          return {
-            totalUSD: byAsset.map(asset => asset.balanceUSD).reduce((a, b) => {
-              return a + b;
-            }),
+
+          const totalUSD = byAsset.map(asset => asset.balanceUSD).reduce((a, b) => {
+            return a + b;
+          });
+     
+          historicalBalances.push({
+            totalUSD: totalUSD,
             byAsset: byAsset,
-            timestamp: history.time
-          };
+            timestamp: history.time,
+            netChangeNominal: totalUSD - lastIterationTotal,
+            netChangeRate: lastIterationTotal === 0 ? (totalUSD/1 * 100).toString() + "%": ((totalUSD - lastIterationTotal)/lastIterationTotal * 100).toString() + "%"
+          });
         } else {
-          return {
+          historicalBalances.push({
             totalUSD: 0,
             byAsset: [],
-            timestamp: history.time
-          }
+            timestamp: history.time,
+            netChangeNominal: 0 - lastIterationTotal,
+            netChangeRate: lastIterationTotal === 0 ? "0%": ((0 - lastIterationTotal)/lastIterationTotal * 100).toString() + "%"
+          })
         }
       });
 
@@ -400,6 +411,8 @@ export interface WalletBalanceSummary {
 
 export interface WalletBalanceHistorySummary extends WalletBalanceSummary {
   timestamp: number;
+  netChangeNominal: number;
+  netChangeRate: string;
 }
 
 interface WalletTransaction {
