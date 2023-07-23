@@ -1,4 +1,4 @@
-import { AppService, AssetDetails } from './app.service';
+import { AppService, AssetDetails, WalletBalanceSummary } from './app.service';
 import { HttpService } from '@nestjs/axios';
 import { TestBed } from '@automock/jest';
 import { AxiosResponse } from 'axios';
@@ -27,7 +27,7 @@ describe('AppService', () => {
       maxSupply: '1',
       marketCapUsd: '1',
       volumeUsd24Hr: '1',
-      priceUsd: '1',
+      priceUsd: '25',
       changePercent24Hr: '1',
       vwap24Hr: '1'
     }
@@ -87,7 +87,44 @@ describe('AppService', () => {
 
       expect(response).toEqual(mockAsset);
     })
+  });
+
+  describe('getWalletBalanceSummary', () => {
+    it('should properly calculate and return the USD values of a full wallet and its assets', async () => {
+
+      jest.spyOn(appService, 'getAllAssets').mockImplementationOnce(
+        () => Promise.resolve([mockAsset])
+      );
+
+      jest.spyOn(JSON, "parse").mockImplementationOnce(
+        () => [
+          {
+            id: "1",
+            userId: "1",
+            assets: [{
+              id: mockAsset.id,
+              balance: 3
+            }],
+            transactions: [],
+            timeCreated: Date.now()
+          }
+        ]
+      );
+
+      const expectedResult: WalletBalanceSummary = {
+        totalUSD: 75,
+        byAsset: [{
+          id: mockAsset.id,
+          balance: 3,
+          balanceUSD: 75
+        }]
+      };
+
+      expect(await appService.getWalletBalanceSummary("1")).toEqual(expectedResult);
+    })
   })
+
+
 
 
 });
