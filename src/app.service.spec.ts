@@ -1,4 +1,4 @@
-import { AppService, AssetDetails, WalletBalanceSummary } from './app.service';
+import { AppService, AssetDetails, Wallet, WalletBalanceSummary } from './app.service';
 import { HttpService } from '@nestjs/axios';
 import { TestBed } from '@automock/jest';
 import { AxiosResponse } from 'axios';
@@ -7,6 +7,7 @@ import { of } from 'rxjs';
 describe('AppService', () => {
   let appService: AppService;
   let mockAsset: AssetDetails;
+  let mockWallet: Wallet;
   let httpService: jest.Mocked<HttpService>;
 
   beforeAll(() => {
@@ -18,6 +19,7 @@ describe('AppService', () => {
     appService = unit;
 
     httpService = unitRef.get(HttpService);
+    
     mockAsset = {
       id:'testId',
       name:'testName',
@@ -30,7 +32,18 @@ describe('AppService', () => {
       priceUsd: '25',
       changePercent24Hr: '1',
       vwap24Hr: '1'
-    }
+    };
+
+    mockWallet = {
+      id: "1",
+      userId: "1",
+      assets: [{
+        id: mockAsset.id,
+        balance: 3
+      }],
+      transactions: [],
+      timeCreated: Date.now()
+    };
   });
 
   describe('getAllAssets', () => {
@@ -97,18 +110,7 @@ describe('AppService', () => {
       );
 
       jest.spyOn(JSON, "parse").mockImplementationOnce(
-        () => [
-          {
-            id: "1",
-            userId: "1",
-            assets: [{
-              id: mockAsset.id,
-              balance: 3
-            }],
-            transactions: [],
-            timeCreated: Date.now()
-          }
-        ]
+        () => [mockWallet]
       );
 
       const expectedResult: WalletBalanceSummary = {
