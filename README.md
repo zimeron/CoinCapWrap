@@ -25,6 +25,12 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
+## App Documentation 
+
+```
+Once running locally, the app can be seen at localhost:3000.  Swagger is used to document the API's endpoints and should be viewable at the root path (localhost:3000/).
+```
+
 ## Test
 
 ```bash
