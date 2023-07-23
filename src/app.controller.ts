@@ -30,10 +30,10 @@ export class AppController {
 
   @Get("/assets/USD/:id")
   @Header('Content-type', 'application/json')
-  async getUsdValuePerAsset(@Param('id') id: string): Promise<string> {
+  async assetPriceSpotCheck(@Param('id') id: string): Promise<string> {
     return JSON.stringify({
       assetId: id,
-      usdPrice: (await this.appService.getAssetById(id)).priceUsd
+      usdPrice: await this.appService.convertAssetToUSD(id, 1)
     })
   }
 
@@ -74,14 +74,14 @@ export class AppController {
 
   @Post("/assets/convertToUSD")
   @Header('Content-type', 'text/plain')
-  convertToUsd(@Body() usdConversionRequest: usdConversionRequest): Promise<string> {
-    return this.appService.convertAssetToUSD(usdConversionRequest.assetId, usdConversionRequest.assetQuantity);
+  async convertToUsd(@Body() usdConversionRequest: usdConversionRequest): Promise<string> {
+    return "Value in USD: " + await this.appService.convertAssetToUSD(usdConversionRequest.assetId, usdConversionRequest.assetQuantity);
   }
 
   @Post("/assets/convertToAsset")
   @Header('Content-type', 'text/plain')
-  convertToAsset(@Body() assetConversionRequest: asssetConversionRequest): Promise<string> {
-    return this.appService.convertUSDToAsset(assetConversionRequest.assetId, assetConversionRequest.usdQuantity);
+  async convertToAsset(@Body() assetConversionRequest: asssetConversionRequest): Promise<string> {
+    return "Can purchase " + await this.appService.convertUSDToAsset(assetConversionRequest.assetId, assetConversionRequest.usdQuantity) + " of asset with id \"" + assetConversionRequest.assetId + "\"";
   }
 
 }

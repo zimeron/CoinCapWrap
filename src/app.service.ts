@@ -51,13 +51,13 @@ export class AppService {
   public async convertAssetToUSD(assetId: string, assetQuantity: number): Promise<string> {
     const assetPrice = (await this.getAssetById(assetId)).priceUsd;
 
-    return "Value in USD: " + (+assetPrice * assetQuantity).toString(); 
+    return (+assetPrice * assetQuantity).toString(); 
   }
 
   public async convertUSDToAsset(assetId: string, usdQuantity: number): Promise<string> {
     const assetPrice = (await this.getAssetById(assetId)).priceUsd;
 
-    return "Can purchase: " + ((1/+assetPrice) * usdQuantity).toString() + " of asset with id \"" + assetId + "\"";
+    return ((1/+assetPrice) * usdQuantity).toString();
 
   }
 
