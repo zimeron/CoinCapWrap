@@ -43,6 +43,9 @@ $ npm run test:e2e
 # test coverage
 $ npm run test:cov
 ```
+```
+A Postman collection is also included (Expert Institute Assessment.postman_collection.json) for manual testing.
+```
 
 ## License
 

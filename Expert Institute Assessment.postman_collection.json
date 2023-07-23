@@ -1,0 +1,303 @@
+{
+	"info": {
+		"_postman_id": "919f6a9a-17cb-4959-b154-9798c2929875",
+		"name": "Expert Institute Assessment",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "13265718"
+	},
+	"item": [
+		{
+			"name": "Register User",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\": \"test dude 2\",\r\n    \"username\": \"testdood2\",\r\n    \"password\": \"testmeup2\",\r\n    \"email\": \"test2@test.test\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:3000/users/register",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All Assets",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:3000/assets",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"assets"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Bitcoin Details",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:3000/assets/bitcoin",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"assets",
+						"bitcoin"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Log In User",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"username\": \"testdood2\",\r\n    \"password\": \"testmeup2\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:3000/users/login",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"users",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Bitcoin Balance Increase",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"walletId\": \"fffd5fed-e195-40ca-8eb9-c7c16fa7a365\",\r\n    \"assetId\": \"bitcoin\",\r\n    \"balanceAdjustment\": 1\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:3000/wallets/updateBalance",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"wallets",
+						"updateBalance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ethereum Balance Increase",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"walletId\": \"fffd5fed-e195-40ca-8eb9-c7c16fa7a365\",\r\n    \"assetId\": \"ethereum\",\r\n    \"balanceAdjustment\": 2\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:3000/wallets/updateBalance",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"wallets",
+						"updateBalance"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Bitcoin USD Price",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:3000/assets/USD/bitcoin",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"assets",
+						"USD",
+						"bitcoin"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Wallet Balance Summary",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:3000/wallets/myBalance/fffd5fed-e195-40ca-8eb9-c7c16fa7a365",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"wallets",
+						"myBalance",
+						"fffd5fed-e195-40ca-8eb9-c7c16fa7a365"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Log Out User",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"userName\": \"testdood2\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:3000/users/logout",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"users",
+						"logout"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Historical Wallet Balance Summary",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:3000/wallets/historicalBalances/fffd5fed-e195-40ca-8eb9-c7c16fa7a365",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"wallets",
+						"historicalBalances",
+						"fffd5fed-e195-40ca-8eb9-c7c16fa7a365"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Convert Asset to USD",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"assetId\": \"bitcoin\",\r\n    \"assetQuantity\": 3\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:3000/assets/convertToUSD",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"assets",
+						"convertToUSD"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Convert USD to Asset",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"assetId\": \"bitcoin\",\r\n    \"usdQuantity\": 100000000\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:3000/assets/convertToAsset",
+					"host": [
+						"localhost"
+					],
+					"port": "3000",
+					"path": [
+						"assets",
+						"convertToAsset"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
