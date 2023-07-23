@@ -1,0 +1,18 @@
+ * Wire auth up to the endpoints and actually check the tokens.
+    * Or bring in an actual auth provider.
+
+ * Actual error trapping with exceptions actually sending back error codes properly using Nest's exception filters.
+
+ * More comprehensive unit and E2E testing.
+
+ * Actual database for persistence using TypeORM instead of JSON files.
+
+ * Optional Pagination + Sorting on getAllAssets.
+
+ * Performance tuning (not sure how much can be done given the limitations on CoinCap but still).
+
+ * Re-architect application into actual modules (Assets, Users, Wallets, Auth).
+
+ * Break down some methods, and condense repeated code into re-usable utility methods.
+
+ * Move data models from interfaces to full DTOs with validation.
