@@ -50,6 +50,7 @@ export class AppController {
   }
 
   @Post("/users/register")
+  @Header('Content-type', 'text/plain')
   registerUser(@Body() userReg: UserReg): string {
     return this.appService.registerUser(userReg);
   }
